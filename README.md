@@ -453,6 +453,13 @@ Register a new account, log in, and visit the dashboard to see your active sessi
 | Terminate All | Appears only when 2+ sessions are active |
 
 ---
+<img width="1918" height="955" alt="Screenshot 2026-03-25 112812" src="https://github.com/user-attachments/assets/3917bee0-327c-4a44-a5a4-12288cfe4350" />
+<img width="1918" height="964" alt="Screenshot 2026-03-25 112825" src="https://github.com/user-attachments/assets/d559d7e3-4543-4e4d-80e3-1f8e3fa3a44e" />
+<img width="1919" height="839" alt="Screenshot 2026-03-25 112842" src="https://github.com/user-attachments/assets/c1519908-3053-4b46-b2df-5cbeeb15a56e" />
+<img width="1916" height="906" alt="Screenshot 2026-03-25 112858" src="https://github.com/user-attachments/assets/62b19d12-2405-4882-a914-01ea11251f8f" />
+<img width="1919" height="911" alt="Screenshot 2026-03-25 112919" src="https://github.com/user-attachments/assets/fdb17af7-1e3f-4cdf-b820-37b86d45e471" />
+
+
 
 ## Project Folder Structure
 
