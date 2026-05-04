@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Jenssegers\Agent\Agent;
+use Illuminate\Support\Facades\Http;
 
 class SessionController extends Controller
 {
@@ -19,18 +20,46 @@ class SessionController extends Controller
             ->get();
 
         // Convert to safe objects to prevent "Undefined property" errors
-        $sessions = $rawSessions->map(function ($session) {
-            return (object) [
-                'id'            => $session->id,
-                'ip_address'    => $session->ip_address,
-                'user_agent'    => $session->user_agent ?? '',
-                'last_activity' => $session->last_activity,
-                'is_current_device' => $session->id === session()->getId(),
-            ];
-        });
+                $sessions = $rawSessions->map(function ($session) {
 
-        return view('dashboard', compact('sessions'));
+                    $location = 'Unknown';
+
+                    try {
+                        $response = Http::get("http://ip-api.com/json/{$session->ip_address}");
+                        if ($response->successful()) {
+                            $data = $response->json();
+                            $location = $data['city'] . ', ' . $data['country'];
+                        }
+                    } catch (\Exception $e) {}
+
+                    return (object) [
+                        'id'            => $session->id,
+                        'ip_address'    => $session->ip_address,
+                        'location'      => $location, // 👈 NEW
+                        'user_agent'    => $session->user_agent ?? '',
+                        'last_activity' => $session->last_activity,
+                        'is_current_device' => $session->id === session()->getId(),
+                    ];
+                });
+                $lastLogin = DB::table('sessions')
+                    ->where('user_id', auth()->id())
+                    ->orderBy('last_activity', 'desc')
+                    ->skip(1)
+                    ->first();
+
+        return view('dashboard', compact('sessions', 'lastLogin'));
     }
+
+    public function logoutAll()
+{
+    DB::table('sessions')
+        ->where('user_id', auth()->id())
+        ->delete();
+
+    auth()->logout();
+
+    return redirect('/login')->with('success', 'Logged out from all devices.');
+}
 
     /**
      * Terminate a specific session.
