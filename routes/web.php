@@ -34,4 +34,6 @@ Route::middleware('auth')->group(function () {
 
 });
 
+Route::post('/logout-all', [SessionController::class, 'logoutAll']);
+
 require __DIR__.'/auth.php';
