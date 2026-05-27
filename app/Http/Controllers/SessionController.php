@@ -19,31 +19,84 @@ class SessionController extends Controller
             ->paginate(3)
             ->withQueryString();
 
-<<<<<<< HEAD
-        // ✅ transform data
         $sessions->getCollection()->transform(function ($session) {
 
             $agent = new Agent();
             $agent->setUserAgent($session->user_agent);
 
-            $session->browser = $agent->browser() ?? 'Unknown';
-            $session->platform = $agent->platform() ?? 'Unknown';
+            $browser = $agent->browser() ?? 'Unknown';
+            $platform = $agent->platform() ?? 'Unknown';
 
-            // ✅ IMPORTANT FIX (NO ERROR NOW)
+            // Device Type (NEW FEATURE)
+            if ($agent->isDesktop()) {
+                $deviceType = 'Desktop';
+                $deviceIcon = '🖥️';
+            } elseif ($agent->isPhone()) {
+                $deviceType = 'Mobile';
+                $deviceIcon = '📱';
+            } else {
+                $deviceType = 'Tablet';
+                $deviceIcon = '💻';
+            }
+
+            $location = 'Unknown';
+
+            try {
+                if (!empty($session->ip_address)) {
+                    $response = Http::timeout(3)->get(
+                        "http://ip-api.com/json/{$session->ip_address}"
+                    );
+
+                    if ($response->successful()) {
+                        $data = $response->json();
+                        $location = trim(
+                            ($data['city'] ?? '') . ', ' . ($data['country'] ?? ''),
+                            ', '
+                        );
+                    }
+                }
+            } catch (\Exception $e) {
+                $location = 'Unknown';
+            }
+
+            $session->browser = $browser;
+            $session->platform = $platform;
+            $session->location = $location;
+
+            $sessionTime = \Carbon\Carbon::createFromTimestamp($session->last_activity);
+
+            // Login time human readable
+            $session->login_time = $sessionTime->diffForHumans();
+
+            // LOGIN STATUS (NEW FEATURE)
+            $session->login_status =
+                $sessionTime->gt(now()->subHour())
+                ? 'Recent Login'
+                : 'Old Login';
+
+            $session->login_status_color =
+                $sessionTime->gt(now()->subHour())
+                ? 'bg-green-600'
+                : 'bg-gray-600';
+
+            $session->device_type = $deviceType;   // NEW
+            $session->device_icon = $deviceIcon;   // NEW
+
             $session->is_current_device = ($session->id === session()->getId());
 
-            // 🔥 SEARCH SUPPORT FIELD
             $session->search_blob = strtolower(
                 $session->ip_address . ' ' .
-                $session->user_agent . ' ' .
-                $session->browser . ' ' .
-                $session->platform
+                    $session->user_agent . ' ' .
+                    $browser . ' ' .
+                    $platform . ' ' .
+                    $location . ' ' .
+                    $deviceType
             );
 
             return $session;
         });
 
-        // ✅ FILTER AFTER TRANSFORM (IMPORTANT FOR "Edge on Windows")
+        // Search filter
         if ($search) {
             $filtered = $sessions->getCollection()->filter(function ($session) use ($search) {
                 return str_contains($session->search_blob, $search);
@@ -61,53 +114,6 @@ class SessionController extends Controller
         return view('dashboard', compact('sessions', 'search', 'lastLogin'));
     }
 
-=======
-        // Convert to safe objects to prevent "Undefined property" errors
-                $sessions = $rawSessions->map(function ($session) {
-
-                    $location = 'Unknown';
-
-                    try {
-                        $response = Http::get("http://ip-api.com/json/{$session->ip_address}");
-                        if ($response->successful()) {
-                            $data = $response->json();
-                            $location = $data['city'] . ', ' . $data['country'];
-                        }
-                    } catch (\Exception $e) {}
-
-                    return (object) [
-                        'id'            => $session->id,
-                        'ip_address'    => $session->ip_address,
-                        'location'      => $location, // 👈 NEW
-                        'user_agent'    => $session->user_agent ?? '',
-                        'last_activity' => $session->last_activity,
-                        'is_current_device' => $session->id === session()->getId(),
-                    ];
-                });
-                $lastLogin = DB::table('sessions')
-                    ->where('user_id', auth()->id())
-                    ->orderBy('last_activity', 'desc')
-                    ->skip(1)
-                    ->first();
-
-        return view('dashboard', compact('sessions', 'lastLogin'));
-    }
-
-    public function logoutAll()
-{
-    DB::table('sessions')
-        ->where('user_id', auth()->id())
-        ->delete();
-
-    auth()->logout();
-
-    return redirect('/login')->with('success', 'Logged out from all devices.');
-}
-
-    /**
-     * Terminate a specific session.
-     */
->>>>>>> main
     public function revokeDevice($id)
     {
         DB::table('sessions')
